@@ -410,6 +410,24 @@ impl Parser {
             Sentence::VTG => Ok(Some(ParseResult::VTG(VTG::parse(source, &mut iter)?))),
         }
     }
+
+    /// applies a closure on the message.
+    ///
+    /// This is meant to act as something of an escape hatch for sentence types that shouldn't be
+    /// generally supported, like proprietary messages. The first argument of the closure is the
+    /// message and the second argument is the checksum
+    ///
+    /// An error is returned if the parser is waiting for the start of a message
+    pub fn examine_message<F: FnMut(&[u8], u8) -> ()>(&self, func: &mut F) -> Result<(), ()>
+    {
+        match self.parser_state {
+            ParserState::WaitStart =>{
+                func(&self.buffer[0 .. self.buflen], self.chksum);
+                Ok(())
+            }
+            _ => Err(())
+        }
+    }
 }
 
 fn from_ascii(bytes: &[u8]) -> Result<&str, &'static str> {
